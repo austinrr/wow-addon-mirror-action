@@ -1,0 +1,61 @@
+name: WoW Addon Mirror
+description: Mirror a CurseForge World of Warcraft addon into this repository as commits, tags and releases for GitHub-based addon managers.
+author: austinrr
+branding:
+  icon: copy
+  color: orange
+
+inputs:
+  project-id:
+    description: CurseForge project ID (shown under "About Project" on the addon page).
+    required: true
+  release-types:
+    description: Comma-separated CurseForge release types to mirror (release, beta, alpha). Betas and alphas become prereleases.
+    default: release
+  game-version-type-id:
+    description: Only mirror files tagged with this CurseForge game version type ID (for addons that upload a separate zip per game flavor).
+    default: ""
+  backfill:
+    description: Maximum number of not-yet-mirrored versions to create in one run.
+    default: "10"
+  flavor-map:
+    description: Overrides for release.json flavors, e.g. "16001=classic" or "16000-16999=classic". Comma or newline separated.
+    default: ""
+  keepalive:
+    description: Re-enable the calling workflow through the API so GitHub does not disable the schedule after 60 days without commits. Requires "actions write" permission.
+    default: "true"
+  dry-run:
+    description: Download and inspect files and print what would happen, without committing, pushing or creating releases.
+    default: "false"
+  token:
+    description: Token used to push commits and tags and to create releases.
+    default: ${{ github.token }}
+
+outputs:
+  versions:
+    description: JSON array of the versions mirrored in this run, oldest first.
+    value: ${{ steps.mirror.outputs.versions }}
+  latest-version:
+    description: The newest version mirrored in this run, or empty if nothing was new.
+    value: ${{ steps.mirror.outputs.latest-version }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v7
+      with:
+        token: ${{ inputs.token }}
+        fetch-depth: 1
+
+    - id: mirror
+      shell: bash
+      run: python3 "$GITHUB_ACTION_PATH/mirror.py"
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        INPUT_PROJECT_ID: ${{ inputs.project-id }}
+        INPUT_RELEASE_TYPES: ${{ inputs.release-types }}
+        INPUT_GAME_VERSION_TYPE_ID: ${{ inputs.game-version-type-id }}
+        INPUT_BACKFILL: ${{ inputs.backfill }}
+        INPUT_FLAVOR_MAP: ${{ inputs.flavor-map }}
+        INPUT_KEEPALIVE: ${{ inputs.keepalive }}
+        INPUT_DRY_RUN: ${{ inputs.dry-run }}

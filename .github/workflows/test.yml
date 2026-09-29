@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 -m unittest discover -s tests -v
+
+  # Runs the action end to end against a real CurseForge project without
+  # pushing anything, using the runner's preinstalled Python and gh.
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: mirror
+        uses: ./
+        with:
+          project-id: 1703102
+          backfill: 2
+          dry-run: true
+      - run: test "$(jq length <<< '${{ steps.mirror.outputs.versions }}')" = 2
